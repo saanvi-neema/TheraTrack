@@ -1,0 +1,19 @@
+name: TheraTrack
+options:
+  bundleIdPrefix: com.saanvi
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  TheraTrack:
+    type: application
+    platform: iOS
+    sources:
+      - path: TheraTrack
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.saanvi.TheraTrack
+        ASSETSCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: true
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
+        INFOPLIST_KEY_UILaunchScreen_Generation: true
+        SWIFT_VERSION: "6.0"
