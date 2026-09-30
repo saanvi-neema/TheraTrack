@@ -7,6 +7,6 @@ struct TheraTrackApp: App {
         WindowGroup {
             WorkoutListView()
         }
-        .modelContainer(for: Workout.self)
+        .modelContainer(for: [Workout.self, WorkoutSession.self])
     }
 }

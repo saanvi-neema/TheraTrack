@@ -17,17 +17,22 @@ struct WorkoutListView: View {
                 } else {
                     List {
                         ForEach(workouts) { workout in
-                            VStack(alignment: .leading) {
-                                Text(workout.name)
-                                Text("\(workout.exercises.count) exercises")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                            NavigationLink(value: workout) {
+                                VStack(alignment: .leading) {
+                                    Text(workout.name)
+                                    Text("\(workout.exercises.count) exercises")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
                 }
             }
             .navigationTitle("Workouts")
+            .navigationDestination(for: Workout.self) { workout in
+                WorkoutDetailView(workout: workout)
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
