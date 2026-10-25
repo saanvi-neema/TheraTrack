@@ -3,11 +3,17 @@ import SwiftData
 import UniformTypeIdentifiers
 
 struct CreateWorkoutView: View {
+    private struct ExerciseDraft: Identifiable {
+        let id = UUID()
+        var name: String
+        var targetReps: Int = 10
+    }
+
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
     @State private var workoutName = ""
-    @State private var exerciseNames: [String] = []
+    @State private var exerciseDrafts: [ExerciseDraft] = []
 
     @State private var specialInstructions = ""
     @State private var isImportingDocument = false
@@ -20,11 +26,11 @@ struct CreateWorkoutView: View {
     @State private var extractionErrorMessage: String?
 
     private var availableExercises: [DefaultExercise] {
-        DefaultExercise.allCases.filter { !exerciseNames.contains($0.rawValue) }
+        DefaultExercise.allCases.filter { exercise in !exerciseDrafts.contains { $0.name == exercise.rawValue } }
     }
 
     private var canSave: Bool {
-        !workoutName.trimmingCharacters(in: .whitespaces).isEmpty && !exerciseNames.isEmpty
+        !workoutName.trimmingCharacters(in: .whitespaces).isEmpty && !exerciseDrafts.isEmpty
     }
 
     var body: some View {
@@ -34,25 +40,37 @@ struct CreateWorkoutView: View {
                     TextField("e.g. Morning Routine", text: $workoutName)
                 }
 
-                Section("Exercises") {
-                    ForEach(exerciseNames, id: \.self) { name in
-                        Text(name)
+                Section {
+                    ForEach(exerciseDrafts.indices, id: \.self) { index in
+                        HStack {
+                            Text(exerciseDrafts[index].name)
+                            Spacer()
+                            Stepper(value: $exerciseDrafts[index].targetReps, in: 1...50) {
+                                Text("\(exerciseDrafts[index].targetReps) reps")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .fixedSize()
+                        }
                     }
                     .onDelete { offsets in
-                        exerciseNames.remove(atOffsets: offsets)
+                        exerciseDrafts.remove(atOffsets: offsets)
                     }
 
                     if !availableExercises.isEmpty {
                         Menu {
                             ForEach(availableExercises) { exercise in
                                 Button(exercise.rawValue) {
-                                    exerciseNames.append(exercise.rawValue)
+                                    exerciseDrafts.append(ExerciseDraft(name: exercise.rawValue))
                                 }
                             }
                         } label: {
                             Label("Add Exercise", systemImage: "plus")
                         }
                     }
+                } header: {
+                    Text("Exercises")
+                } footer: {
+                    Text("Exercises run in this order during a session. Each one advances automatically once its rep target is reached.")
                 }
 
                 Section {
@@ -108,6 +126,7 @@ struct CreateWorkoutView: View {
                     .disabled(!canSave || isExtracting)
                 }
             }
+            .scrollDismissesKeyboard(.immediately)
             .fileImporter(
                 isPresented: $isImportingDocument,
                 allowedContentTypes: allowedDocumentTypes,
@@ -115,7 +134,7 @@ struct CreateWorkoutView: View {
             )
             .sheet(isPresented: $isPresentingReview) {
                 ConstraintReviewView(
-                    exercises: exerciseNames,
+                    exercises: exerciseDrafts.map(\.name),
                     constraints: extractedConstraints,
                     onConfirm: { finalConstraints in
                         isPresentingReview = false
@@ -179,7 +198,7 @@ struct CreateWorkoutView: View {
 
             extractedConstraints = try await ConstraintExtractionService.extractConstraints(
                 from: combinedText,
-                exercises: exerciseNames,
+                exercises: exerciseDrafts.map(\.name),
                 apiKey: Secrets.groqAPIKey
             )
             isPresentingReview = true
@@ -190,8 +209,8 @@ struct CreateWorkoutView: View {
 
     private func performSave(constraints: [ExtractedConstraint]) {
         let workout = Workout(name: workoutName.trimmingCharacters(in: .whitespaces))
-        workout.exercises = exerciseNames.enumerated().map { index, name in
-            Exercise(name: name, order: index)
+        workout.exercises = exerciseDrafts.enumerated().map { index, draft in
+            Exercise(name: draft.name, order: index, targetReps: draft.targetReps)
         }
 
         let trimmedInstructions = specialInstructions.trimmingCharacters(in: .whitespacesAndNewlines)

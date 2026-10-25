@@ -10,12 +10,16 @@
 		06E741D776C4EEDA44A3C64E /* TheraTrackApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62FCDC794E2A99D812A0C412 /* TheraTrackApp.swift */; };
 		08AE610C550915989A321D1A /* WorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC50AA1BF2B22C4765B0A1A1 /* WorkoutDetailView.swift */; };
 		0DF02FB639F4449B5E7C5F32 /* WorkoutSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAE5098691ADA530CD2A7A1D /* WorkoutSession.swift */; };
+		0E200FEF1CACE6CEBE09729D /* DebugLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2814DDCC2541042E7CEC774F /* DebugLogView.swift */; };
 		179E911B7F56F1ADD2FD9F29 /* ExercisePerformance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 721F4CF3756D12BCA8C164E3 /* ExercisePerformance.swift */; };
+		1C09DB25AA4D6897A518252B /* SessionSummaryContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83FF515BD417636B01B6FC6D /* SessionSummaryContent.swift */; };
 		222DC1690F7D5BBD42B43308 /* Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C175781FBCB2B43834ECE3A /* Workout.swift */; };
+		230D94BFFD3119B27B324AA0 /* LandmarkSmoother.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DB122DBB7CE15104A1185A9 /* LandmarkSmoother.swift */; };
+		2DECF73D90CD9F56613D6312 /* SessionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27D58B2B5C6FBA2416C7AE1B /* SessionHistoryView.swift */; };
 		37195ED737CF83A228BB7C9A /* PoseOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A06211FF94F94BE13514881 /* PoseOverlayView.swift */; };
 		466034066D8B2A1A3DB84B80 /* PoseEstimationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E197152037B8925919E7ABF6 /* PoseEstimationService.swift */; };
+		4F84452A8D18DB474CBA4F69 /* SpeechFeedbackSpeaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6972F4E2221885C9F34FAF /* SpeechFeedbackSpeaker.swift */; };
 		553DA0E93679A2D129B90119 /* WorkoutListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF31C1C316173AFAC0DBE11A /* WorkoutListView.swift */; };
-		5FAFE3D7F869105C7C3EAB77 /* ExerciseRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B73D35679595BC2296B7608 /* ExerciseRecognizer.swift */; };
 		6170403C786168ADDF8DD958 /* CreateWorkoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B312B17516B3A63F8F554CE /* CreateWorkoutView.swift */; };
 		82E8101142184E600F2EF1D2 /* ConstraintExtractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47A104B84C45AB59D64F1C19 /* ConstraintExtractionService.swift */; };
 		884BFA1E5725186351272E9A /* LiveSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0D7919E96A6819F389B5EC7 /* LiveSessionView.swift */; };
@@ -34,25 +38,29 @@
 		E4E7AD479905094D0FAD32F6 /* DocumentTextExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DFF9F419F66A7D3F4617C0A /* DocumentTextExtractor.swift */; };
 		E50AF70DABABE32F29A91944 /* LiveSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEA34D34D25C97A86F67BDEE /* LiveSessionViewModel.swift */; };
 		E7A899A393B3CB6C99323E3E /* FormViolation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C283CC8E1AD71CABC9E9A6 /* FormViolation.swift */; };
+		F35D1681036D49B874836EDF /* MotionGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C720403E81D4046055208780 /* MotionGate.swift */; };
 		F4A18C0668C268925FCA2B76 /* ExtractedConstraint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37677D541E221F530D5AB674 /* ExtractedConstraint.swift */; };
 		FC880E508E7AC10ECFAE5777 /* JointAngleCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3783474E42CBD77E8A865B81 /* JointAngleCalculator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		1DFF9F419F66A7D3F4617C0A /* DocumentTextExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentTextExtractor.swift; sourceTree = "<group>"; };
+		27D58B2B5C6FBA2416C7AE1B /* SessionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionHistoryView.swift; sourceTree = "<group>"; };
+		2814DDCC2541042E7CEC774F /* DebugLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogView.swift; sourceTree = "<group>"; };
 		33E4A42223E1C19EDC0091E4 /* ExerciseSignature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseSignature.swift; sourceTree = "<group>"; };
 		37677D541E221F530D5AB674 /* ExtractedConstraint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractedConstraint.swift; sourceTree = "<group>"; };
 		3783474E42CBD77E8A865B81 /* JointAngleCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JointAngleCalculator.swift; sourceTree = "<group>"; };
 		3B312B17516B3A63F8F554CE /* CreateWorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateWorkoutView.swift; sourceTree = "<group>"; };
 		47A104B84C45AB59D64F1C19 /* ConstraintExtractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConstraintExtractionService.swift; sourceTree = "<group>"; };
-		4C99446E4C4285FEFFD90789 /* TheraTrack.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TheraTrack.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4C99446E4C4285FEFFD90789 /* TheraTrack.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TheraTrack.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4DB122DBB7CE15104A1185A9 /* LandmarkSmoother.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkSmoother.swift; sourceTree = "<group>"; };
 		5A06211FF94F94BE13514881 /* PoseOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoseOverlayView.swift; sourceTree = "<group>"; };
 		5EBD1579877851849F5D90B6 /* CameraPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreviewView.swift; sourceTree = "<group>"; };
 		62FCDC794E2A99D812A0C412 /* TheraTrackApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TheraTrackApp.swift; sourceTree = "<group>"; };
 		721F4CF3756D12BCA8C164E3 /* ExercisePerformance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisePerformance.swift; sourceTree = "<group>"; };
 		7CFD06102CDEC4C3C650D63A /* RepCounter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepCounter.swift; sourceTree = "<group>"; };
+		83FF515BD417636B01B6FC6D /* SessionSummaryContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSummaryContent.swift; sourceTree = "<group>"; };
 		85C283CC8E1AD71CABC9E9A6 /* FormViolation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormViolation.swift; sourceTree = "<group>"; };
-		8B73D35679595BC2296B7608 /* ExerciseRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseRecognizer.swift; sourceTree = "<group>"; };
 		8C175781FBCB2B43834ECE3A /* Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workout.swift; sourceTree = "<group>"; };
 		934BAF8ED354983C6FB6BD4E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		99966A333265D4F0C304A097 /* Constraint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constraint.swift; sourceTree = "<group>"; };
@@ -61,6 +69,8 @@
 		ABF0C70BFAF2665E0F749616 /* FormValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormValidator.swift; sourceTree = "<group>"; };
 		ABFA2D45E4299E7CFCCB02F7 /* ConstraintReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConstraintReviewView.swift; sourceTree = "<group>"; };
 		AC50AA1BF2B22C4765B0A1A1 /* WorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailView.swift; sourceTree = "<group>"; };
+		C720403E81D4046055208780 /* MotionGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionGate.swift; sourceTree = "<group>"; };
+		CD6972F4E2221885C9F34FAF /* SpeechFeedbackSpeaker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechFeedbackSpeaker.swift; sourceTree = "<group>"; };
 		CE158BE9BD6F3EEE18D5E2DC /* SessionSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSummaryView.swift; sourceTree = "<group>"; };
 		CF31C1C316173AFAC0DBE11A /* WorkoutListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutListView.swift; sourceTree = "<group>"; };
 		DEA34D34D25C97A86F67BDEE /* LiveSessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSessionViewModel.swift; sourceTree = "<group>"; };
@@ -78,8 +88,11 @@
 				5EBD1579877851849F5D90B6 /* CameraPreviewView.swift */,
 				ABFA2D45E4299E7CFCCB02F7 /* ConstraintReviewView.swift */,
 				3B312B17516B3A63F8F554CE /* CreateWorkoutView.swift */,
+				2814DDCC2541042E7CEC774F /* DebugLogView.swift */,
 				E0D7919E96A6819F389B5EC7 /* LiveSessionView.swift */,
 				5A06211FF94F94BE13514881 /* PoseOverlayView.swift */,
+				27D58B2B5C6FBA2416C7AE1B /* SessionHistoryView.swift */,
+				83FF515BD417636B01B6FC6D /* SessionSummaryContent.swift */,
 				CE158BE9BD6F3EEE18D5E2DC /* SessionSummaryView.swift */,
 				AC50AA1BF2B22C4765B0A1A1 /* WorkoutDetailView.swift */,
 				CF31C1C316173AFAC0DBE11A /* WorkoutListView.swift */,
@@ -137,13 +150,15 @@
 		B26B90D4828A73CA6BDEE1E5 /* Session */ = {
 			isa = PBXGroup;
 			children = (
-				8B73D35679595BC2296B7608 /* ExerciseRecognizer.swift */,
 				33E4A42223E1C19EDC0091E4 /* ExerciseSignature.swift */,
 				ABF0C70BFAF2665E0F749616 /* FormValidator.swift */,
 				3783474E42CBD77E8A865B81 /* JointAngleCalculator.swift */,
+				4DB122DBB7CE15104A1185A9 /* LandmarkSmoother.swift */,
 				DEA34D34D25C97A86F67BDEE /* LiveSessionViewModel.swift */,
+				C720403E81D4046055208780 /* MotionGate.swift */,
 				E197152037B8925919E7ABF6 /* PoseEstimationService.swift */,
 				7CFD06102CDEC4C3C650D63A /* RepCounter.swift */,
+				CD6972F4E2221885C9F34FAF /* SpeechFeedbackSpeaker.swift */,
 			);
 			path = Session;
 			sourceTree = "<group>";
@@ -186,6 +201,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					531BE0C1F386C12FB152D2AC = {
+						ProvisioningStyle = Automatic;
+					};
 				};
 			};
 			buildConfigurationList = 5B973584D19D0C7ACC065359 /* Build configuration list for PBXProject "TheraTrack" */;
@@ -228,24 +246,29 @@
 				82E8101142184E600F2EF1D2 /* ConstraintExtractionService.swift in Sources */,
 				A1C2E5AAD333B508CE09517A /* ConstraintReviewView.swift in Sources */,
 				6170403C786168ADDF8DD958 /* CreateWorkoutView.swift in Sources */,
+				0E200FEF1CACE6CEBE09729D /* DebugLogView.swift in Sources */,
 				DE08273433BDACE49F16B75F /* DefaultExercise.swift in Sources */,
 				E4E7AD479905094D0FAD32F6 /* DocumentTextExtractor.swift in Sources */,
 				B4CDDCF04843098DBC7B9DAC /* Exercise.swift in Sources */,
 				179E911B7F56F1ADD2FD9F29 /* ExercisePerformance.swift in Sources */,
-				5FAFE3D7F869105C7C3EAB77 /* ExerciseRecognizer.swift in Sources */,
 				DDA5EE30E2DC2CFDA8493C7E /* ExerciseSignature.swift in Sources */,
 				F4A18C0668C268925FCA2B76 /* ExtractedConstraint.swift in Sources */,
 				BF44A6A8347E73570CB3D5D1 /* FormValidator.swift in Sources */,
 				E7A899A393B3CB6C99323E3E /* FormViolation.swift in Sources */,
 				970F08676005E553B87E3920 /* GroqClient.swift in Sources */,
 				FC880E508E7AC10ECFAE5777 /* JointAngleCalculator.swift in Sources */,
+				230D94BFFD3119B27B324AA0 /* LandmarkSmoother.swift in Sources */,
 				884BFA1E5725186351272E9A /* LiveSessionView.swift in Sources */,
 				E50AF70DABABE32F29A91944 /* LiveSessionViewModel.swift in Sources */,
+				F35D1681036D49B874836EDF /* MotionGate.swift in Sources */,
 				466034066D8B2A1A3DB84B80 /* PoseEstimationService.swift in Sources */,
 				37195ED737CF83A228BB7C9A /* PoseOverlayView.swift in Sources */,
 				9AD594165A7E4B4CC6AF625D /* RepCounter.swift in Sources */,
 				902AABDBD2068326A5BBF169 /* Secrets.swift in Sources */,
+				2DECF73D90CD9F56613D6312 /* SessionHistoryView.swift in Sources */,
+				1C09DB25AA4D6897A518252B /* SessionSummaryContent.swift in Sources */,
 				D75410B34C46B58340E35675 /* SessionSummaryView.swift in Sources */,
+				4F84452A8D18DB474CBA4F69 /* SpeechFeedbackSpeaker.swift in Sources */,
 				06E741D776C4EEDA44A3C64E /* TheraTrackApp.swift in Sources */,
 				222DC1690F7D5BBD42B43308 /* Workout.swift in Sources */,
 				08AE610C550915989A321D1A /* WorkoutDetailView.swift in Sources */,
@@ -319,6 +342,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETSCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 7DDACG8VFQ;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "TheraTrack uses the camera to track your body position and check your exercise form during a workout session.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -403,6 +428,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETSCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 7DDACG8VFQ;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "TheraTrack uses the camera to track your body position and check your exercise form during a workout session.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

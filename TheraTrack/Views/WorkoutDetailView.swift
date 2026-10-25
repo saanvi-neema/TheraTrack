@@ -120,6 +120,7 @@ struct WorkoutDetailView: View {
         }
         .navigationTitle(workout.name)
         .navigationBarTitleDisplayMode(.inline)
+        .scrollDismissesKeyboard(.immediately)
         .fileImporter(
             isPresented: $isImportingDocument,
             allowedContentTypes: [.pdf, .jpeg, .png, .plainText],

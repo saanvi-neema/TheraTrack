@@ -1,13 +1,23 @@
 import Foundation
 
-enum GroqClientError: Error {
-    case requestFailed(statusCode: Int)
+enum GroqClientError: LocalizedError {
+    case requestFailed(statusCode: Int, message: String?)
     case emptyResponse
+
+    var errorDescription: String? {
+        switch self {
+        case .requestFailed(let statusCode, let message):
+            if let message { return "Groq request failed (\(statusCode)): \(message)" }
+            return "Groq request failed with status \(statusCode)."
+        case .emptyResponse:
+            return "Groq returned an empty response."
+        }
+    }
 }
 
 struct GroqClient {
     var apiKey: String
-    var model = "llama-3.3-70b-versatile"
+    var model = "openai/gpt-oss-120b"
 
     func chatCompletion(systemPrompt: String, userPrompt: String) async throws -> String {
         var request = URLRequest(url: URL(string: "https://api.groq.com/openai/v1/chat/completions")!)
@@ -29,7 +39,9 @@ struct GroqClient {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) else {
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
-            throw GroqClientError.requestFailed(statusCode: statusCode)
+            struct ErrorBody: Decodable { struct Inner: Decodable { let message: String }; let error: Inner }
+            let message = try? JSONDecoder().decode(ErrorBody.self, from: data).error.message
+            throw GroqClientError.requestFailed(statusCode: statusCode, message: message)
         }
 
         struct ChatResponse: Decodable {

@@ -25,7 +25,7 @@ struct LiveSessionView: View {
 
             VStack {
                 HStack {
-                    Text(viewModel.currentExerciseName ?? "Get in position…")
+                    Text(viewModel.currentExerciseName ?? (viewModel.isSessionComplete ? "All exercises complete!" : "Get in position…"))
                         .font(.headline)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
@@ -35,27 +35,32 @@ struct LiveSessionView: View {
 
                     Spacer()
 
-                    Text("Reps: \(viewModel.currentRepCount)")
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(.black.opacity(0.6))
-                        .foregroundStyle(.white)
-                        .clipShape(Capsule())
+                    if viewModel.currentExerciseName != nil {
+                        Text(repsLabel)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(.black.opacity(0.6))
+                            .foregroundStyle(.white)
+                            .clipShape(Capsule())
+                    }
                 }
                 .padding()
 
-                Spacer()
-
                 if let feedback = viewModel.feedbackMessage {
                     Text(feedback)
-                        .font(.subheadline.weight(.semibold))
-                        .padding()
-                        .background(.orange.opacity(0.9))
+                        .font(.system(size: 34, weight: .bold))
+                        .multilineTextAlignment(.center)
+                        .minimumScaleFactor(0.6)
                         .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .padding(.bottom, 8)
+                        .padding(24)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.red.opacity(0.92))
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .padding(.horizontal, 16)
                         .transition(.opacity)
                 }
+
+                Spacer()
 
                 Button {
                     completedSession = viewModel.endSession()
@@ -71,10 +76,20 @@ struct LiveSessionView: View {
                 .padding()
             }
         }
-        .onAppear { viewModel.start() }
+        .onAppear {
+            viewModel.start()
+            viewModel.announceCurrentExercise()
+        }
         .onDisappear { viewModel.stop() }
         .fullScreenCover(item: $completedSession) { session in
-            SessionSummaryView(session: session, onDone: { onFinished(session) })
+            SessionSummaryView(session: session, debugLog: viewModel.debugHistory, onDone: { onFinished(session) })
         }
+    }
+
+    private var repsLabel: String {
+        if let target = viewModel.currentRepTarget {
+            return "Reps: \(viewModel.currentRepCount)/\(target)"
+        }
+        return "Reps: \(viewModel.currentRepCount)"
     }
 }

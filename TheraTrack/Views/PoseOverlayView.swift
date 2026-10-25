@@ -18,9 +18,10 @@ struct PoseOverlayView: View {
     var body: some View {
         Canvas { context, size in
             func convert(_ point: CGPoint) -> CGPoint {
-                // Vision points are normalized (0-1, origin bottom-left); the front
-                // camera preview is mirrored, so flip both axes for screen space.
-                CGPoint(x: (1 - point.x) * size.width, y: (1 - point.y) * size.height)
+                // Vision points are normalized (0-1, origin bottom-left) relative to the
+                // capture buffer, which is already mirrored to match the preview — so only
+                // the y-axis needs flipping to reach UIKit's top-left, y-down screen space.
+                CGPoint(x: point.x * size.width, y: (1 - point.y) * size.height)
             }
 
             for (a, b) in Self.connections {

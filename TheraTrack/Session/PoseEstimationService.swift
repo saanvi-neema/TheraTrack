@@ -55,6 +55,19 @@ final class PoseEstimationService: NSObject, AVCaptureVideoDataOutputSampleBuffe
             session.addOutput(videoOutput)
         }
 
+        // Correct the buffer's rotation/mirroring at the capture-connection level
+        // (not by guessing a CGImagePropertyOrientation after the fact) so what Vision
+        // sees is already an upright, naturally-mirrored "selfie" image.
+        if let connection = videoOutput.connection(with: .video) {
+            if connection.isVideoRotationAngleSupported(90) {
+                connection.videoRotationAngle = 90
+            }
+            connection.automaticallyAdjustsVideoMirroring = false
+            if connection.isVideoMirroringSupported {
+                connection.isVideoMirrored = true
+            }
+        }
+
         session.commitConfiguration()
     }
 
@@ -65,6 +78,8 @@ final class PoseEstimationService: NSObject, AVCaptureVideoDataOutputSampleBuffe
     ) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
+        // The capture connection above already rotates/mirrors the buffer to upright,
+        // so Vision needs no further correction here.
         let requestHandler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up)
         let request = VNDetectHumanBodyPoseRequest()
 

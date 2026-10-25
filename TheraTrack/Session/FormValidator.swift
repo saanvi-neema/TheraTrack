@@ -22,21 +22,52 @@ enum FormValidator {
             messages.append("Slow down the movement.")
         }
 
+        let maxROM = maxROMOverride(for: signature.name, constraints: constraints) ?? signature.defaultMaxROM
+
         if let primary = signature.primaryAngle(namedAngles) {
-            let maxROM = maxROMOverride(for: signature.name, constraints: constraints) ?? signature.defaultMaxROM
             if let maxROM, primary > maxROM {
                 messages.append("Do not exceed your prescribed range of motion.")
             }
         }
 
         if let underRangeMessage = signature.underRangeMessage, let peak = repCounter.lastPeakAngle {
-            let tolerance = abs(signature.activeAngle - signature.restAngle) * 0.15
-            if abs(peak - signature.activeAngle) > tolerance {
+            let movingUp = signature.activeAngle > signature.restAngle
+            // The real target can never ask the user to exceed a personalized
+            // max-ROM constraint — otherwise "reach full range" and "don't exceed
+            // your prescribed limit" become mutually impossible to satisfy at once,
+            // which is exactly what was happening: a 90° generic target combined
+            // with a 50° personalized cap meant no angle could ever be "correct."
+            let effectiveTarget: Double
+            if let maxROM {
+                effectiveTarget = movingUp ? Swift.min(signature.activeAngle, maxROM) : Swift.max(signature.activeAngle, maxROM)
+            } else {
+                effectiveTarget = signature.activeAngle
+            }
+            // Direction-aware: only flag falling SHORT of the target, in whichever
+            // direction this exercise's active angle actually moves. Checking
+            // |peak - target| instead would also flag *exceeding* it — e.g. raising
+            // a knee higher than expected — as if that were a fault.
+            //
+            // Tolerance is sized off the exercise's own generic rest/active span, not
+            // the (possibly much tighter) personalized target — otherwise a stricter
+            // safety constraint also shrinks the margin for error, making an already
+            // tighter window even harder to hit by feel. A fixed fraction of the full
+            // span gives a realistically hittable band no matter how tight the
+            // personalized cap is.
+            let tolerance = abs(signature.activeAngle - signature.restAngle) * 0.2
+            let shortfall = movingUp ? (effectiveTarget - peak) : (peak - effectiveTarget)
+            if shortfall > tolerance {
                 messages.append(underRangeMessage)
             }
         }
 
         return messages
+    }
+
+    /// Exposed for the debug log, so what's actually being checked against is
+    /// visible instead of assumed.
+    static func parsedMaxROM(for exerciseName: String, constraints: [Constraint]) -> Double? {
+        maxROMOverride(for: exerciseName, constraints: constraints)
     }
 
     private static func maxROMOverride(for exerciseName: String, constraints: [Constraint]) -> Double? {

@@ -11,12 +11,32 @@ final class RepCounter {
     private(set) var primaryMax = -Double.infinity
     private(set) var lastAngularSpeed: Double = 0
     private(set) var lastPeakAngle: Double?
+    /// Set the moment a rep completes — a real up-and-back cycle, which is much
+    /// stronger evidence of "this exercise is actually happening" than any single
+    /// snapshot of the joint angle, and is what exercise recognition keys off now.
+    private(set) var lastRepCompletedAt: TimeInterval?
 
     private var angleRanges: [String: (min: Double, max: Double)] = [:]
     private var phase: Phase = .atRest
-    private var lastPrimaryAngle: Double?
-    private var lastTimestamp: TimeInterval?
+    var isInActivePhase: Bool { phase == .active }
     private var peakSincePhaseStart: Double?
+
+    /// Tracks the extremum of ANY noticeable movement attempt and returns, even
+    /// one too small to cross `repThreshold` and count as a full rep — so "you
+    /// didn't reach far enough" feedback can fire for a half-hearted attempt, not
+    /// only for fully-completed reps. Without this, a movement too small to ever
+    /// register as a rep also never set `lastPeakAngle`, so it got no feedback at
+    /// all instead of being told to go further.
+    private var excursionPeak: Double?
+    private var isInExcursion = false
+
+    /// Angular speed is measured over this rolling window, not frame-to-frame —
+    /// a single-frame derivative amplifies ordinary pose-detection jitter (most of
+    /// all near a fully-extended joint, where `acos` is most sensitive to tiny
+    /// position noise) into a false reading of hundreds of °/s even while holding
+    /// still, which falsely triggered "slow down" regardless of actual movement.
+    private let speedWindow: TimeInterval = 0.3
+    private var speedSamples: [(timestamp: TimeInterval, value: Double)] = []
 
     private enum Phase { case atRest, active }
 
@@ -35,32 +55,85 @@ final class RepCounter {
         primaryMin = Swift.min(primaryMin, primary)
         primaryMax = Swift.max(primaryMax, primary)
 
-        if let lastPrimaryAngle, let lastTimestamp {
-            let dt = timestamp - lastTimestamp
-            if dt > 0.01 {
-                lastAngularSpeed = abs(primary - lastPrimaryAngle) / dt
-            }
+        speedSamples.append((timestamp: timestamp, value: primary))
+        speedSamples.removeAll { timestamp - $0.timestamp > speedWindow }
+        if let oldest = speedSamples.first, timestamp - oldest.timestamp > 0.1 {
+            lastAngularSpeed = abs(primary - oldest.value) / (timestamp - oldest.timestamp)
         }
-        lastPrimaryAngle = primary
-        lastTimestamp = timestamp
 
         let movingUp = signature.activeAngle > signature.restAngle
+
+        let span = abs(signature.activeAngle - signature.restAngle)
+        let noiseFloor = span * 0.08
+        let deviation = movingUp ? (primary - calibratedRestAngle) : (calibratedRestAngle - primary)
+        if deviation > noiseFloor {
+            if isInExcursion {
+                excursionPeak = movingUp ? Swift.max(excursionPeak ?? primary, primary) : Swift.min(excursionPeak ?? primary, primary)
+            } else {
+                isInExcursion = true
+                excursionPeak = primary
+            }
+        } else if isInExcursion {
+            if let excursionPeak {
+                lastPeakAngle = excursionPeak
+            }
+            isInExcursion = false
+            excursionPeak = nil
+        }
+
+        let threshold = calibratedRepThreshold
+        // A single crossing value lets ordinary pose-jitter near that exact angle
+        // flip the phase back and forth several times during one continuous
+        // motion, each flip counting as a full rep — e.g. 2 real reps reading as
+        // 5. Entering and exiting "active" now require crossing slightly different
+        // thresholds, creating a dead zone around the midpoint that a small wobble
+        // can't repeatedly cross.
+        let hysteresisGap = span * 0.1
         switch phase {
         case .atRest:
             peakSincePhaseStart = primary
-            let crossed = movingUp ? primary >= signature.repThreshold : primary <= signature.repThreshold
+            let enterThreshold = movingUp ? threshold + hysteresisGap / 2 : threshold - hysteresisGap / 2
+            let crossed = movingUp ? primary >= enterThreshold : primary <= enterThreshold
             if crossed { phase = .active }
         case .active:
             peakSincePhaseStart = movingUp
                 ? Swift.max(peakSincePhaseStart ?? primary, primary)
                 : Swift.min(peakSincePhaseStart ?? primary, primary)
-            let crossed = movingUp ? primary <= signature.repThreshold : primary >= signature.repThreshold
+            let exitThreshold = movingUp ? threshold - hysteresisGap / 2 : threshold + hysteresisGap / 2
+            let crossed = movingUp ? primary <= exitThreshold : primary >= exitThreshold
             if crossed {
                 phase = .atRest
                 repCount += 1
                 lastPeakAngle = peakSincePhaseStart
+                lastRepCompletedAt = timestamp
             }
         }
+    }
+
+    /// This user's actual resting angle for this exercise, refined live from
+    /// observed movement — starts at the generic textbook default and blends
+    /// toward the real observed low end once there's data, so differences in body,
+    /// camera angle, or chair height stop being graded against a one-size-fits-all
+    /// number. The active/target angle is deliberately NOT personalized this way,
+    /// since that's the clinical goal being checked, not a baseline.
+    var calibratedRestAngle: Double {
+        guard primaryMax >= primaryMin, primaryMin.isFinite, primaryMax.isFinite else {
+            return signature.restAngle
+        }
+        let movingUp = signature.activeAngle > signature.restAngle
+        let observedRest = movingUp ? primaryMin : primaryMax
+        return (signature.restAngle + observedRest) / 2
+    }
+
+    /// `signature.repThreshold`, re-expressed as the same fraction of the way from
+    /// `calibratedRestAngle` to `signature.activeAngle` — so rep-phase crossing
+    /// adapts along with the personalized rest baseline.
+    var calibratedRepThreshold: Double {
+        let rest = calibratedRestAngle
+        let span = signature.activeAngle - signature.restAngle
+        guard span != 0 else { return signature.repThreshold }
+        let fraction = (signature.repThreshold - signature.restAngle) / span
+        return rest + fraction * (signature.activeAngle - rest)
     }
 
     var romAchieved: Double {
