@@ -1,9 +1,6 @@
 import SwiftUI
 
-/// Temporary diagnostic screen: shows the raw per-exercise angle/activation numbers
-/// recorded throughout a session, read back after the session ends (not meant to be
-/// read live at exercise distance). Intended for tuning exercise thresholds, not as
-/// a permanent feature.
+/// Temporary diagnostic screen: raw per-exercise numbers from a session, for tuning.
 struct DebugLogView: View {
     let lines: [String]
     @State private var didCopy = false

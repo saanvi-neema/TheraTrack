@@ -1,16 +1,8 @@
 import Foundation
 import CoreGraphics
-import Vision
 
-/// Distinguishes "the user is walking/relocating/adjusting the camera" from "the
-/// user is performing one of the prescribed exercises in place." All default
-/// exercises are done standing, seated, or lying down in one spot — none require
-/// walking toward, away from, or sideways past the camera — so real locomotion is
-/// a reliable signal that whatever the pose detector sees right now isn't a real
-/// rep, no matter what the raw joint angles say. Checked fresh every frame — not a
-/// fixed warm-up timer — so it reacts immediately once the user actually settles
-/// into position, however long or short that takes, and re-engages immediately if
-/// they walk off again mid-session.
+/// Detects walking/relocating vs. actually performing an exercise in place, so
+/// feedback doesn't fire while the user is adjusting the camera.
 final class MotionGate {
     private struct Sample {
         let timestamp: TimeInterval
@@ -38,17 +30,17 @@ final class MotionGate {
     }
 
     func isRelocating(
-        points: [VNHumanBodyPoseObservation.JointName: (location: CGPoint, confidence: Float)],
+        points: [String: (location: CGPoint, confidence: Float)],
         timestamp: TimeInterval
     ) -> Bool {
         let confidenceThreshold: Float = 0.3
-        func point(_ name: VNHumanBodyPoseObservation.JointName) -> CGPoint? {
+        func point(_ name: String) -> CGPoint? {
             guard let entry = points[name], entry.confidence >= confidenceThreshold else { return nil }
             return entry.location
         }
 
-        guard let leftHip = point(.leftHip), let rightHip = point(.rightHip),
-              let leftShoulder = point(.leftShoulder), let rightShoulder = point(.rightShoulder) else {
+        guard let leftHip = point("leftHip"), let rightHip = point("rightHip"),
+              let leftShoulder = point("leftShoulder"), let rightShoulder = point("rightShoulder") else {
             // Not enough landmarks to judge either way — don't block on missing data.
             return false
         }

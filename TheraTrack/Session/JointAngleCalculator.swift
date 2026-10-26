@@ -1,9 +1,16 @@
 import Foundation
 import CoreGraphics
+import simd
 import Vision
 
 struct PoseSnapshot {
-    var points: [VNHumanBodyPoseObservation.JointName: (location: CGPoint, confidence: Float)]
+    /// 2D image-space projection of each joint, keyed by joint name — used for
+    /// overlay drawing and for the ankle-lift proxy (no 3D advantage there, since
+    /// there's no foot/toe landmark in either Vision body-pose API).
+    var points2D: [String: (location: CGPoint, confidence: Float)]
+    /// True 3D joint position relative to the camera, in meters — used for angle
+    /// math, since it isn't distorted by foreshortening the way a 2D projection is.
+    var points3D: [String: SIMD3<Float>]
     var timestamp: TimeInterval
 }
 
@@ -11,115 +18,104 @@ enum JointAngleCalculator {
     private static let confidenceThreshold: Float = 0.3
 
     /// Named joint angles/measurements used by exercise recognition, rep counting, and form checks.
-    /// Angles are in degrees; "*AlignmentOffset" values are unitless (normalized to hip-ankle distance);
-    /// "*AnkleLift" is a vertical-displacement proxy since Vision has no foot/toe landmark.
+    /// Angles are in degrees; "*AlignmentOffset" values are unitless (normalized to limb length);
+    /// "*AnkleLift" is a 2D vertical-displacement proxy since Vision has no foot/toe landmark.
     static func namedAngles(from snapshot: PoseSnapshot) -> [String: Double] {
         var result: [String: Double] = [:]
-        let points = snapshot.points
 
-        func point(_ name: VNHumanBodyPoseObservation.JointName) -> CGPoint? {
-            guard let entry = points[name], entry.confidence >= confidenceThreshold else { return nil }
+        func point3D(_ name: String) -> SIMD3<Float>? {
+            guard let entry = snapshot.points2D[name], entry.confidence >= confidenceThreshold else { return nil }
+            return snapshot.points3D[name]
+        }
+        func point2D(_ name: String) -> CGPoint? {
+            guard let entry = snapshot.points2D[name], entry.confidence >= confidenceThreshold else { return nil }
             return entry.location
         }
 
-        if let hip = point(.leftHip), let knee = point(.leftKnee), let ankle = point(.leftAnkle) {
+        if let hip = point3D("leftHip"), let knee = point3D("leftKnee"), let ankle = point3D("leftAnkle") {
             result["leftKnee"] = angle(at: knee, from: hip, to: ankle)
             result["kneeAlignmentLeft"] = lineDeviation(point: knee, lineStart: hip, lineEnd: ankle)
         }
-        if let hip = point(.rightHip), let knee = point(.rightKnee), let ankle = point(.rightAnkle) {
+        if let hip = point3D("rightHip"), let knee = point3D("rightKnee"), let ankle = point3D("rightAnkle") {
             result["rightKnee"] = angle(at: knee, from: hip, to: ankle)
             result["kneeAlignmentRight"] = lineDeviation(point: knee, lineStart: hip, lineEnd: ankle)
         }
 
-        if let shoulder = point(.leftShoulder), let hip = point(.leftHip), let knee = point(.leftKnee) {
-            result["leftHip"] = angle(at: hip, from: shoulder, to: knee)
-        }
-        if let shoulder = point(.rightShoulder), let hip = point(.rightHip), let knee = point(.rightKnee) {
-            result["rightHip"] = angle(at: hip, from: shoulder, to: knee)
-        }
-
-        // Abduction is measured as arm *elevation*: the angle between "hanging
-        // straight down" and the actual shoulder→wrist direction (0° = arm at your
-        // side, ~90° = raised to shoulder height, ~180° = overhead). This requires
-        // the arm to actually rise, not just drift sideways — a hand resting low on
-        // a thigh or chair armrest (common while standing up from a chair) moves
-        // sideways too, but stays low, so it no longer gets mistaken for a real raise.
-        if let leftShoulder = point(.leftShoulder), let wrist = point(.leftWrist) {
-            result["leftShoulderAbduction"] = elevationAngle(shoulder: leftShoulder, wrist: wrist)
-        }
-        if let rightShoulder = point(.rightShoulder), let wrist = point(.rightWrist) {
-            result["rightShoulderAbduction"] = elevationAngle(shoulder: rightShoulder, wrist: wrist)
-        }
-
-        if let shoulder = point(.leftShoulder), let elbow = point(.leftElbow), let wrist = point(.leftWrist) {
-            result["leftElbow"] = angle(at: elbow, from: shoulder, to: wrist)
-        }
-        if let shoulder = point(.rightShoulder), let elbow = point(.rightElbow), let wrist = point(.rightWrist) {
-            result["rightElbow"] = angle(at: elbow, from: shoulder, to: wrist)
-        }
-
-        if let knee = point(.leftKnee), let ankle = point(.leftAnkle) {
-            result["leftAnkleLift"] = Double(knee.y - ankle.y) * 100
-        }
-        if let knee = point(.rightKnee), let ankle = point(.rightAnkle) {
-            result["rightAnkleLift"] = Double(knee.y - ankle.y) * 100
-        }
-
-        // A standing knee-raise lifts the thigh mostly *toward the camera*, not
-        // sideways across it — viewed head-on, that motion is heavily foreshortened,
-        // so the hip-shoulder-knee angle barely changes no matter how high the knee
-        // actually goes. Measuring vertical knee-to-hip closing distance instead
-        // (scaled by torso length, so it stays accurate regardless of distance from
-        // the camera) sidesteps foreshortening entirely without requiring a side view.
-        if let leftShoulder = point(.leftShoulder), let rightShoulder = point(.rightShoulder),
-           let leftHip = point(.leftHip), let rightHip = point(.rightHip) {
+        // Standing March uses a 2D vertical knee-to-hip distance (torso-length
+        // scaled), not a 3D hip angle — a march moves the knee both up AND toward
+        // the camera, and depth is the least accurate part of monocular 3D
+        // estimation (it has to be inferred, not directly seen the way image
+        // position is), so the 3D angle barely moved even for a big real motion.
+        // This sidesteps depth entirely by measuring only what's directly visible.
+        if let leftShoulder = point2D("leftShoulder"), let rightShoulder = point2D("rightShoulder"),
+           let leftHip = point2D("leftHip"), let rightHip = point2D("rightHip") {
             let shoulderMid = CGPoint(x: (leftShoulder.x + rightShoulder.x) / 2, y: (leftShoulder.y + rightShoulder.y) / 2)
             let hipMid = CGPoint(x: (leftHip.x + rightHip.x) / 2, y: (leftHip.y + rightHip.y) / 2)
             let torsoLength = Double(hypot(shoulderMid.x - hipMid.x, shoulderMid.y - hipMid.y))
             if torsoLength > 0 {
-                if let leftKnee = point(.leftKnee) {
+                if let leftKnee = point2D("leftKnee") {
                     result["leftKneeRaise"] = Double(leftHip.y - leftKnee.y) / torsoLength * 100
                 }
-                if let rightKnee = point(.rightKnee) {
+                if let rightKnee = point2D("rightKnee") {
                     result["rightKneeRaise"] = Double(rightHip.y - rightKnee.y) / torsoLength * 100
                 }
             }
         }
 
+        // Shoulder abduction as the 3D angle at the shoulder between straight down
+        // the trunk and the direction to the wrist. "Straight down the trunk" uses
+        // the dedicated root (pelvis center) and centerShoulder (shoulder center)
+        // joints to build the true trunk axis, then anchors that direction at each
+        // individual shoulder.
+        // 0° = arm at the side, ~90° = raised to shoulder height, ~180° = overhead.
+        if let root = point3D("root"), let centerShoulder = point3D("centerShoulder") {
+            let trunkDown = root - centerShoulder
+            if let leftShoulder = point3D("leftShoulder"), let leftWrist = point3D("leftWrist") {
+                result["leftShoulderAbduction"] = angle(at: leftShoulder, from: leftShoulder + trunkDown, to: leftWrist)
+            }
+            if let rightShoulder = point3D("rightShoulder"), let rightWrist = point3D("rightWrist") {
+                result["rightShoulderAbduction"] = angle(at: rightShoulder, from: rightShoulder + trunkDown, to: rightWrist)
+            }
+        }
+
+        if let shoulder = point3D("leftShoulder"), let elbow = point3D("leftElbow"), let wrist = point3D("leftWrist") {
+            result["leftElbow"] = angle(at: elbow, from: shoulder, to: wrist)
+        }
+        if let shoulder = point3D("rightShoulder"), let elbow = point3D("rightElbow"), let wrist = point3D("rightWrist") {
+            result["rightElbow"] = angle(at: elbow, from: shoulder, to: wrist)
+        }
+
+        if let knee = point2D("leftKnee"), let ankle = point2D("leftAnkle") {
+            result["leftAnkleLift"] = Double(knee.y - ankle.y) * 100
+        }
+        if let knee = point2D("rightKnee"), let ankle = point2D("rightAnkle") {
+            result["rightAnkleLift"] = Double(knee.y - ankle.y) * 100
+        }
+
         return result
     }
 
-    /// Angle at `vertex`, between rays to `a` and `b`, in degrees (0-180).
-    private static func angle(at vertex: CGPoint, from a: CGPoint, to b: CGPoint) -> Double {
-        let v1 = CGVector(dx: a.x - vertex.x, dy: a.y - vertex.y)
-        let v2 = CGVector(dx: b.x - vertex.x, dy: b.y - vertex.y)
-        let mag1 = (v1.dx * v1.dx + v1.dy * v1.dy).squareRoot()
-        let mag2 = (v2.dx * v2.dx + v2.dy * v2.dy).squareRoot()
+    /// Angle at `vertex`, between rays to `a` and `b`, in degrees (0-180) — a true
+    /// 3D angle, not a 2D projection, so it isn't distorted by camera viewing angle.
+    private static func angle(at vertex: SIMD3<Float>, from a: SIMD3<Float>, to b: SIMD3<Float>) -> Double {
+        let v1 = a - vertex
+        let v2 = b - vertex
+        let mag1 = Double(length(v1))
+        let mag2 = Double(length(v2))
         guard mag1 > 0, mag2 > 0 else { return 0 }
-        let dot = v1.dx * v2.dx + v1.dy * v2.dy
-        let cosine = max(-1, min(1, Double(dot / (mag1 * mag2))))
-        return acos(cosine) * 180 / .pi
-    }
-
-    /// Angle between the downward-vertical direction at `shoulder` and the actual
-    /// `shoulder`→`wrist` direction. Vision's points are y-up, so "straight down"
-    /// is the vector (0, -1).
-    private static func elevationAngle(shoulder: CGPoint, wrist: CGPoint) -> Double {
-        let dx = Double(wrist.x - shoulder.x)
-        let dy = Double(wrist.y - shoulder.y)
-        let magnitude = (dx * dx + dy * dy).squareRoot()
-        guard magnitude > 0 else { return 0 }
-        let cosine = max(-1, min(1, -dy / magnitude))
+        let cosine = max(-1, min(1, Double(dot(v1, v2)) / (mag1 * mag2)))
         return acos(cosine) * 180 / .pi
     }
 
     /// Perpendicular distance from `point` to the line through `lineStart`-`lineEnd`,
-    /// normalized by the line's length (so it's scale-invariant across distance from camera).
-    private static func lineDeviation(point: CGPoint, lineStart: CGPoint, lineEnd: CGPoint) -> Double {
-        let lineVector = CGVector(dx: lineEnd.x - lineStart.x, dy: lineEnd.y - lineStart.y)
-        let length = (lineVector.dx * lineVector.dx + lineVector.dy * lineVector.dy).squareRoot()
-        guard length > 0 else { return 0 }
-        let cross = (point.x - lineStart.x) * lineVector.dy - (point.y - lineStart.y) * lineVector.dx
-        return Double(cross / length) / Double(length)
+    /// normalized by the line's length (scale-invariant, same semantics as the old
+    /// 2D version even though positions are now real-world meters).
+    private static func lineDeviation(point: SIMD3<Float>, lineStart: SIMD3<Float>, lineEnd: SIMD3<Float>) -> Double {
+        let lineVector = lineEnd - lineStart
+        let lineLength = Double(length(lineVector))
+        guard lineLength > 0 else { return 0 }
+        let toPoint = point - lineStart
+        let crossMag = Double(length(cross(toPoint, lineVector)))
+        return (crossMag / lineLength) / lineLength
     }
 }

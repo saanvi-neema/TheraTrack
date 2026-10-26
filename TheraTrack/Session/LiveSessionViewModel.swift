@@ -25,7 +25,7 @@ final class LiveSessionViewModel {
 
     private(set) var currentExerciseName: String?
     private(set) var isSessionComplete = false
-    private(set) var latestPoints: [VNHumanBodyPoseObservation.JointName: (location: CGPoint, confidence: Float)] = [:]
+    private(set) var latestPoints: [String: (location: CGPoint, confidence: Float)] = [:]
     private(set) var feedbackMessage: String?
     private(set) var debugLines: [String] = []
     private(set) var debugHistory: [String] = []
@@ -58,6 +58,7 @@ final class LiveSessionViewModel {
             targetReps[exercise.name] = exercise.targetReps
         }
         currentExerciseName = ordered.first?.name
+        speaker.prewarm(phrases: Self.allSpokenPhrases())
 
         poseService.onPoseUpdate = { [weak self] snapshot in
             self?.handle(snapshot: snapshot)
@@ -72,6 +73,26 @@ final class LiveSessionViewModel {
         speaker.speak("Now starting \(currentExerciseName)")
     }
 
+    /// Every phrase the app can ever say, gathered up front so they can all be
+    /// pre-rendered to cached audio once rather than synthesized live each time.
+    private static func allSpokenPhrases() -> [String] {
+        var phrases: Set<String> = [
+            FormValidator.kneeAlignmentMessage,
+            FormValidator.slowDownMessage,
+            FormValidator.exceedROMMessage,
+            "Workout complete. Great job."
+        ]
+        for exercise in DefaultExercise.allCases {
+            phrases.insert("Now starting \(exercise.rawValue)")
+        }
+        for signature in ExerciseSignature.all.values {
+            if let message = signature.underRangeMessage {
+                phrases.insert(message)
+            }
+        }
+        return Array(phrases)
+    }
+
     func start() {
         poseService.requestAccessAndStart()
     }
@@ -82,9 +103,9 @@ final class LiveSessionViewModel {
 
     private func handle(snapshot rawSnapshot: PoseSnapshot) {
         let snapshot = smoother.smooth(rawSnapshot)
-        latestPoints = snapshot.points
+        latestPoints = snapshot.points2D
         let namedAngles = JointAngleCalculator.namedAngles(from: snapshot)
-        let isRelocating = motionGate.isRelocating(points: snapshot.points, timestamp: snapshot.timestamp)
+        let isRelocating = motionGate.isRelocating(points: snapshot.points2D, timestamp: snapshot.timestamp)
 
         updateDebugLines(namedAngles: namedAngles, timestamp: snapshot.timestamp, isRelocating: isRelocating)
 
@@ -94,6 +115,20 @@ final class LiveSessionViewModel {
               let repCounter = repCounters[currentExerciseName] else { return }
 
         repCounter.update(namedAngles: namedAngles, timestamp: snapshot.timestamp)
+
+        // Checked unconditionally — not gated behind the excursion check below —
+        // since completing a rep means the arm/leg has already returned toward
+        // rest, ending the excursion, so advancement would otherwise never run.
+        if let target = targetReps[currentExerciseName], repCounter.repCount >= target {
+            advanceToNextExercise()
+            return
+        }
+
+        // Only check form at all while a real, deliberate movement is actually in
+        // progress — otherwise standing idle, adjusting the camera, or resting
+        // between reps can trigger feedback ("don't exceed your range of motion",
+        // "slow down") for movement that was never a real exercise attempt.
+        guard repCounter.isInExcursion else { return }
 
         let relevantConstraints = workout.constraints.filter {
             $0.exerciseName == nil || $0.exerciseName == currentExerciseName
@@ -113,10 +148,6 @@ final class LiveSessionViewModel {
                 violationLog[currentExerciseName, default: []].append((message: message, date: Date()))
                 speaker.speak(message)
             }
-        }
-
-        if let target = targetReps[currentExerciseName], repCounter.repCount >= target {
-            advanceToNextExercise()
         }
     }
 

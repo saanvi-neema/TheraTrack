@@ -1,15 +1,7 @@
 import Foundation
 
 /// Joint-angle signature for one default exercise. `restAngle`/`activeAngle` are
-/// generic population-average reference values from published goniometry norms
-/// (e.g. shoulder abduction to shoulder height ≈ 90°, hip flexion for a knee raise
-/// ≈ 90-120°, full knee extension ≈ 180° interior angle i.e. 0° flexion, seated
-/// knee flexion ≈ 90°, ankle dorsi/plantarflexion ≈ 15-20°/40-50°) — not numbers
-/// measured from this specific user. `activeAngle` is the clinical target and is
-/// intentionally left fixed, since it's the thing form-checking is judging against;
-/// `restAngle` is personalized live per user via `RepCounter.calibratedRestAngle`,
-/// since a resting pose is about an individual's body/camera setup, not a clinical
-/// target.
+/// generic goniometry reference values, not measured from this specific user.
 struct ExerciseSignature: Sendable {
     let name: String
     /// Picks the single most relevant angle (degrees) for this exercise out of the
@@ -31,6 +23,35 @@ struct ExerciseSignature: Sendable {
     let kneeAlignmentKeys: [String]
     /// Left/right named-angle keys used to compute a symmetry score, if this exercise is bilateral.
     let symmetryPairKeys: (left: String, right: String)?
+    /// If true, a rep counts whenever a real movement excursion (already noise-floor
+    /// gated) completes, instead of requiring the angle to cross a specific
+    /// calibrated threshold value. Exercises whose angle proxy is noisy/imprecise
+    /// (like Standing March's 2D knee-raise) kept missing a fixed threshold despite
+    /// clearly real, repeated movement — this counts the movement itself.
+    let countsByExcursion: Bool
+
+    init(
+        name: String,
+        primaryAngle: @Sendable @escaping ([String: Double]) -> Double?,
+        restAngle: Double, activeAngle: Double, repThreshold: Double,
+        maxSpeed: Double, defaultMaxROM: Double?,
+        underRangeMessage: String?,
+        kneeAlignmentKeys: [String],
+        symmetryPairKeys: (left: String, right: String)?,
+        countsByExcursion: Bool = false
+    ) {
+        self.name = name
+        self.primaryAngle = primaryAngle
+        self.restAngle = restAngle
+        self.activeAngle = activeAngle
+        self.repThreshold = repThreshold
+        self.maxSpeed = maxSpeed
+        self.defaultMaxROM = defaultMaxROM
+        self.underRangeMessage = underRangeMessage
+        self.kneeAlignmentKeys = kneeAlignmentKeys
+        self.symmetryPairKeys = symmetryPairKeys
+        self.countsByExcursion = countsByExcursion
+    }
 
     static let all: [String: ExerciseSignature] = [
         DefaultExercise.sitToStand.rawValue: ExerciseSignature(
@@ -45,7 +66,7 @@ struct ExerciseSignature: Sendable {
         DefaultExercise.shoulderAbduction.rawValue: ExerciseSignature(
             name: DefaultExercise.shoulderAbduction.rawValue,
             primaryAngle: { max($0["leftShoulderAbduction"] ?? 0, $0["rightShoulderAbduction"] ?? 0) },
-            restAngle: 10, activeAngle: 90, repThreshold: 50,
+            restAngle: 10, activeAngle: 45, repThreshold: 20,
             maxSpeed: 180, defaultMaxROM: 180,
             underRangeMessage: "Raise your arm slightly higher.",
             kneeAlignmentKeys: [],
@@ -83,20 +104,19 @@ struct ExerciseSignature: Sendable {
             symmetryPairKeys: ("leftAnkleLift", "rightAnkleLift")
         ),
         // Uses "KneeRaise" (a torso-length-scaled vertical knee-to-hip distance),
-        // not a hip angle — viewed head-on, the hip-shoulder-knee angle barely
-        // changes as the knee rises because that motion is mostly toward the
-        // camera, not across it, and gets badly foreshortened in a 2D projection.
+        // not a hip angle — see JointAngleCalculator for why. Counts by excursion
+        // (any real detected knee-raise-and-return), not by crossing a specific
+        // threshold angle — the 2D proxy's exact values vary too much by camera
+        // angle/body for a fixed threshold to reliably hit.
         DefaultExercise.standingMarch.rawValue: ExerciseSignature(
             name: DefaultExercise.standingMarch.rawValue,
             primaryAngle: { min($0["leftKneeRaise"] ?? 100, $0["rightKneeRaise"] ?? 100) },
-            restAngle: 90, activeAngle: 20, repThreshold: 55,
-            // This metric's scale isn't degrees, so it isn't comparable to the other
-            // exercises' maxSpeed values — a normal-paced rep swings through a much
-            // bigger number on this scale than the same motion would in true degrees.
+            restAngle: 90, activeAngle: 60, repThreshold: 78,
             maxSpeed: 400, defaultMaxROM: nil,
             underRangeMessage: "Lift your knee a little higher.",
             kneeAlignmentKeys: [],
-            symmetryPairKeys: ("leftKneeRaise", "rightKneeRaise")
+            symmetryPairKeys: ("leftKneeRaise", "rightKneeRaise"),
+            countsByExcursion: true
         )
     ]
 }

@@ -1,10 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// The actual session-analysis content, shared between the end-of-live-session
-/// summary and the History tab's read-only view of a past session. `extra` lets
-/// the live-session case append its own section (the debug log button) without
-/// this view needing to know that exists.
+/// Session-analysis content shared between the live-session summary and History tab.
 struct SessionSummaryContent<Extra: View>: View {
     let session: WorkoutSession
     @ViewBuilder var extra: () -> Extra

@@ -1,16 +1,15 @@
 import SwiftUI
-import Vision
 
 struct PoseOverlayView: View {
-    let points: [VNHumanBodyPoseObservation.JointName: (location: CGPoint, confidence: Float)]
+    let points: [String: (location: CGPoint, confidence: Float)]
 
-    private static let connections: [(VNHumanBodyPoseObservation.JointName, VNHumanBodyPoseObservation.JointName)] = [
-        (.leftShoulder, .rightShoulder),
-        (.leftShoulder, .leftElbow), (.leftElbow, .leftWrist),
-        (.rightShoulder, .rightElbow), (.rightElbow, .rightWrist),
-        (.leftShoulder, .leftHip), (.rightShoulder, .rightHip), (.leftHip, .rightHip),
-        (.leftHip, .leftKnee), (.leftKnee, .leftAnkle),
-        (.rightHip, .rightKnee), (.rightKnee, .rightAnkle)
+    private static let connections: [(String, String)] = [
+        ("leftShoulder", "rightShoulder"),
+        ("leftShoulder", "leftElbow"), ("leftElbow", "leftWrist"),
+        ("rightShoulder", "rightElbow"), ("rightElbow", "rightWrist"),
+        ("leftShoulder", "leftHip"), ("rightShoulder", "rightHip"), ("leftHip", "rightHip"),
+        ("leftHip", "leftKnee"), ("leftKnee", "leftAnkle"),
+        ("rightHip", "rightKnee"), ("rightKnee", "rightAnkle")
     ]
 
     private let confidenceThreshold: Float = 0.3

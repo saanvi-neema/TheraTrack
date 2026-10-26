@@ -28,7 +28,11 @@ final class RepCounter {
     /// register as a rep also never set `lastPeakAngle`, so it got no feedback at
     /// all instead of being told to go further.
     private var excursionPeak: Double?
-    private var isInExcursion = false
+    /// True only while a real, deliberate movement is in progress (bigger than
+    /// sensor noise) — ALL feedback is gated on this, not just the under-range
+    /// check, so nothing fires while setting up the camera, standing idle, or
+    /// adjusting position between exercises.
+    private(set) var isInExcursion = false
 
     /// Angular speed is measured over this rolling window, not frame-to-frame —
     /// a single-frame derivative amplifies ordinary pose-detection jitter (most of
@@ -64,7 +68,11 @@ final class RepCounter {
         let movingUp = signature.activeAngle > signature.restAngle
 
         let span = abs(signature.activeAngle - signature.restAngle)
-        let noiseFloor = span * 0.08
+        // Must be a clear, deliberate movement — not just bigger than sensor noise.
+        // At 8% of span this was only marginally above typical 3D-angle jitter, so
+        // standing still could cross it on noise alone and trigger feedback for
+        // movement that never happened.
+        let noiseFloor = span * 0.3
         let deviation = movingUp ? (primary - calibratedRestAngle) : (calibratedRestAngle - primary)
         if deviation > noiseFloor {
             if isInExcursion {
@@ -76,10 +84,20 @@ final class RepCounter {
         } else if isInExcursion {
             if let excursionPeak {
                 lastPeakAngle = excursionPeak
+                // The excursion itself (a real movement past the noise floor, out
+                // and back) is already strong, direct evidence of a completed rep —
+                // for exercises where hitting one exact threshold angle keeps
+                // missing clearly-real reps, count this instead of requiring that.
+                if signature.countsByExcursion {
+                    repCount += 1
+                    lastRepCompletedAt = timestamp
+                }
             }
             isInExcursion = false
             excursionPeak = nil
         }
+
+        guard !signature.countsByExcursion else { return }
 
         let threshold = calibratedRepThreshold
         // A single crossing value lets ordinary pose-jitter near that exact angle

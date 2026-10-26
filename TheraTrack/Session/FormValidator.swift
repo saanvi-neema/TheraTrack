@@ -1,6 +1,13 @@
 import Foundation
 
 enum FormValidator {
+    // Named so the same literal text can be pre-rendered to audio once (see
+    // SpeechFeedbackSpeaker.prewarm) and stay in sync with what's actually spoken,
+    // rather than two copies of the wording risking drifting apart.
+    static let kneeAlignmentMessage = "Keep your knees aligned."
+    static let slowDownMessage = "Slow down the movement."
+    static let exceedROMMessage = "Do not exceed your prescribed range of motion."
+
     /// Runs the rule-based safety checks for the current frame and returns any
     /// feedback messages that apply (empty if form looks fine this frame).
     static func evaluate(
@@ -13,20 +20,20 @@ enum FormValidator {
 
         for key in signature.kneeAlignmentKeys {
             if let offset = namedAngles[key], abs(offset) > 0.15 {
-                messages.append("Keep your knees aligned.")
+                messages.append(kneeAlignmentMessage)
                 break
             }
         }
 
         if repCounter.lastAngularSpeed > signature.maxSpeed {
-            messages.append("Slow down the movement.")
+            messages.append(slowDownMessage)
         }
 
         let maxROM = maxROMOverride(for: signature.name, constraints: constraints) ?? signature.defaultMaxROM
 
         if let primary = signature.primaryAngle(namedAngles) {
             if let maxROM, primary > maxROM {
-                messages.append("Do not exceed your prescribed range of motion.")
+                messages.append(exceedROMMessage)
             }
         }
 
