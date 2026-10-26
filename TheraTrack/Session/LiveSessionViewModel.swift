@@ -109,18 +109,11 @@ final class LiveSessionViewModel {
 
         updateDebugLines(namedAngles: namedAngles, timestamp: snapshot.timestamp, isRelocating: isRelocating)
 
-        guard !isSessionComplete,
+        guard !isSessionComplete, !isRelocating,
               let currentExerciseName,
               let signature = ExerciseSignature.all[currentExerciseName],
               let repCounter = repCounters[currentExerciseName] else { return }
 
-        // Rep counting runs off the exercise's own movement signal (already
-        // noise-floor gated in RepCounter), not MotionGate — MotionGate looks at
-        // whole-body hip drift/torso-scale change to catch walking across the
-        // frame, but a real march in place naturally sways the hips and shifts the
-        // torso the same way, which was silently blocking every march rep from
-        // ever reaching the counter. MotionGate still gates spoken feedback below,
-        // since that's genuinely about not talking over camera setup.
         repCounter.update(namedAngles: namedAngles, timestamp: snapshot.timestamp)
 
         // Checked unconditionally — not gated behind the excursion check below —
@@ -132,11 +125,10 @@ final class LiveSessionViewModel {
         }
 
         // Only check form at all while a real, deliberate movement is actually in
-        // progress, and not while walking/adjusting the camera — otherwise standing
-        // idle, relocating, or resting between reps can trigger feedback ("don't
-        // exceed your range of motion", "slow down") for movement that was never a
-        // real exercise attempt.
-        guard !isRelocating, repCounter.isInExcursion else { return }
+        // progress — otherwise standing idle, adjusting the camera, or resting
+        // between reps can trigger feedback ("don't exceed your range of motion",
+        // "slow down") for movement that was never a real exercise attempt.
+        guard repCounter.isInExcursion else { return }
 
         let relevantConstraints = workout.constraints.filter {
             $0.exerciseName == nil || $0.exerciseName == currentExerciseName
@@ -152,9 +144,8 @@ final class LiveSessionViewModel {
             let lastShown = lastFeedbackShownAt[currentExerciseName] ?? -.infinity
             // The cooldown only throttles repeating the SAME message — it must
             // never block switching to a genuinely different one, otherwise a fast
-            // transition (e.g. arms low, then immediately raised too high) gets
-            // stuck showing the first, now-wrong message for the full cooldown
-            // window instead of updating to reflect what's actually happening.
+            // transition (e.g. arms low, then raised too high) gets stuck showing
+            // the first, now-wrong message for the full cooldown window.
             let isRepeatOfSameMessage = feedbackMessage == message
             if !isRepeatOfSameMessage || snapshot.timestamp - lastShown >= feedbackRepeatCooldown {
                 feedbackMessage = message

@@ -37,7 +37,12 @@ enum FormValidator {
             }
         }
 
-        if let underRangeMessage = signature.underRangeMessage, let peak = repCounter.lastPeakAngle {
+        // Only judged at the instant the movement reverses direction at the top of
+        // a rep (see `RepCounter.peakJustReached`) — using `lastPeakAngle`, the true
+        // peak just locked in right then. Checking this continuously during the
+        // rise would flag a rep that's still climbing fine as having fallen short;
+        // checking it against an old rep's peak would judge the wrong rep entirely.
+        if let underRangeMessage = signature.underRangeMessage, repCounter.peakJustReached, let peak = repCounter.lastPeakAngle {
             let movingUp = signature.activeAngle > signature.restAngle
             // The real target can never ask the user to exceed a personalized
             // max-ROM constraint — otherwise "reach full range" and "don't exceed
