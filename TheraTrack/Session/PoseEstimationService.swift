@@ -52,7 +52,14 @@ final class PoseEstimationService: NSObject, AVCaptureVideoDataOutputSampleBuffe
         guard session.inputs.isEmpty else { return }
 
         session.beginConfiguration()
-        session.sessionPreset = .high
+        // Lower resolution than .high on purpose: VNDetectHumanBodyPose3DRequest's
+        // per-frame cost scales with image size, and AVCaptureVideoDataOutput
+        // silently drops frames the delegate can't keep up with — at .high
+        // resolution, a fast movement's peak could occur entirely within frames
+        // that never finished processing in time, undercounting reps and making
+        // tracking feel laggy. Body-pose joint estimation doesn't need full
+        // resolution, so this trades image detail we don't use for throughput we do.
+        session.sessionPreset = .vga640x480
 
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
               let input = try? AVCaptureDeviceInput(device: device),

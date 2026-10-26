@@ -42,6 +42,15 @@ final class RepCounter {
     private let speedWindow: TimeInterval = 0.3
     private var speedSamples: [(timestamp: TimeInterval, value: Double)] = []
 
+    /// Per-side excursion state for `countsByExcursion` exercises, keyed by the
+    /// side's own named-angle key. Needed because the combined `primary` signal
+    /// (e.g. min of left/right knee raise) can stay perpetually "active" during
+    /// alternating-leg movement like marching — while one leg comes down the other
+    /// is already going up, so the combined signal never dips back to rest between
+    /// reps, merging many real reps into one. Tracking each side's own lift-and-
+    /// return independently counts one rep per leg, matching what actually happened.
+    private var sideInExcursion: [String: Bool] = [:]
+
     private enum Phase { case atRest, active }
 
     init(signature: ExerciseSignature) {
@@ -84,20 +93,37 @@ final class RepCounter {
         } else if isInExcursion {
             if let excursionPeak {
                 lastPeakAngle = excursionPeak
-                // The excursion itself (a real movement past the noise floor, out
-                // and back) is already strong, direct evidence of a completed rep —
-                // for exercises where hitting one exact threshold angle keeps
-                // missing clearly-real reps, count this instead of requiring that.
-                if signature.countsByExcursion {
-                    repCount += 1
-                    lastRepCompletedAt = timestamp
-                }
             }
             isInExcursion = false
             excursionPeak = nil
         }
 
-        guard !signature.countsByExcursion else { return }
+        if signature.countsByExcursion {
+            // Counted per side, not off the combined `primary` signal above — see
+            // `sideInExcursion`'s doc comment for why. Entering and leaving the
+            // excursion use different thresholds (the same hysteresis-gap idea as
+            // the phase-based counter below), so ordinary signal jitter near one
+            // single boundary can't flip the state back and forth and count the
+            // same real rep multiple times.
+            let hysteresisGap = span * 0.1
+            let enterFloor = noiseFloor + hysteresisGap / 2
+            let exitFloor = noiseFloor - hysteresisGap / 2
+            if let pair = signature.symmetryPairKeys {
+                for key in [pair.left, pair.right] {
+                    guard let value = namedAngles[key] else { continue }
+                    let sideDeviation = movingUp ? (value - calibratedRestAngle) : (calibratedRestAngle - value)
+                    let wasActive = sideInExcursion[key] ?? false
+                    if !wasActive, sideDeviation > enterFloor {
+                        sideInExcursion[key] = true
+                    } else if wasActive, sideDeviation < exitFloor {
+                        sideInExcursion[key] = false
+                        repCount += 1
+                        lastRepCompletedAt = timestamp
+                    }
+                }
+            }
+            return
+        }
 
         let threshold = calibratedRepThreshold
         // A single crossing value lets ordinary pose-jitter near that exact angle
